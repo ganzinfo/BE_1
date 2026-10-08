@@ -1,0 +1,5 @@
+### Gyökér végpont tesztelése (GET /)
+GET http://localhost:3000/
+
+### Favicon tesztelése (GET /favicon.ico)
+GET http://localhost:3000/favicon.ico
