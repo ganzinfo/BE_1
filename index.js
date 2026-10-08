@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import { connectDB } from './db.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +30,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'Express szerver sikeresen fut!' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+  await connectDB();
   console.log(`Szerver elindult a http://localhost:${PORT} címen`);
 });
