@@ -3,3 +3,7 @@ GET http://localhost:3000/
 
 ### Favicon tesztelése (GET /favicon.ico)
 GET http://localhost:3000/favicon.ico
+
+### Összes felhasználó lekérdezése (GET /api/users)
+GET http://localhost:3000/api/users
+

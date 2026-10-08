@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { connectDB } from './db.js';
+import { User, seedUsers } from './models/User.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,7 +31,18 @@ app.get('/', (req, res) => {
   res.json({ message: 'Express szerver sikeresen fut!' });
 });
 
+// Felhasználók lekérdezése
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await User.findAll();
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: 'Nem sikerült lekérni a felhasználókat.' });
+  }
+});
+
 app.listen(PORT, async () => {
   await connectDB();
+  await seedUsers();
   console.log(`Szerver elindult a http://localhost:${PORT} címen`);
 });
