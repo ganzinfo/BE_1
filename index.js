@@ -1,7 +1,8 @@
 import express from 'express';
 import path from 'path';
 import { connectDB } from './db.js';
-import { User, seedUsers } from './models/User.js';
+import { User } from './models/User.js';
+import { checkEmptyTable } from './z_dummy_data/users_dummy.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,6 +44,6 @@ app.get('/api/users', async (req, res) => {
 
 app.listen(PORT, async () => {
   await connectDB();
-  await seedUsers();
+  await checkEmptyTable();
   console.log(`Szerver elindult a http://localhost:${PORT} címen`);
 });
