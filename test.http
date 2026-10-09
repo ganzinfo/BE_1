@@ -7,3 +7,10 @@ GET http://localhost:3000/favicon.ico
 ### Összes felhasználó lekérdezése (GET /api/users)
 GET http://localhost:3000/api/users
 
+### Összes feladat lekérdezése (GET /api/tasks)
+GET http://localhost:3000/api/tasks
+
+### Kapcsolótábla lekérdezése taskokkal és userekkel (GET /api/usertasks)
+GET http://localhost:3000/api/usertasks
+
+
