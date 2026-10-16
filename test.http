@@ -10,7 +10,24 @@ GET http://localhost:3000/api/users
 ### Összes feladat lekérdezése (GET /api/tasks)
 GET http://localhost:3000/api/tasks
 
-### Kapcsolótábla lekérdezése taskokkal és userekkel (GET /api/usertasks)
+### Bejelentkezés tesztelése (POST /api/login)
+POST http://localhost:3000/api/login
+Content-Type: application/json
+
+{
+  "email": "bence.kovacs@example.com",
+  "password": "password123"
+}
+
+### Kapcsolótábla lekérdezése token NÉLKÜL (várhatóan 401 Hiba)
 GET http://localhost:3000/api/taskusers
+
+### Kapcsolótábla lekérdezése tokennel (Authorization Header)
+# Cseréld ki a tokent a login során kapott tokenre!
+GET http://localhost:3000/api/taskusers
+Authorization: Bearer a39d91db-0827-40f4-a827-29004afc55dc
+
+### Kapcsolótábla lekérdezése tokennel query paraméterként
+# GET http://localhost:3000/api/taskusers?token=ILLUSD_IDE_A_TOKENT
 
 

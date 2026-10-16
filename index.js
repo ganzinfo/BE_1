@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import crypto from 'crypto';
 import { connectDB } from './db.js';
 import { User } from './models/User.js';
 import { Task } from './models/Task.js';
@@ -9,6 +10,24 @@ import { checkEmptyTable as checkEmptyTasksTable } from './z_dummy_data/tasks_du
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Egyszerű in-memory tokentároló
+const activeTokens = new Map();
+
+// Autentikációs middleware a védett végpontokhoz
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : authHeader || req.query.token;
+
+  if (!token || !activeTokens.has(token)) {
+    return res.status(401).json({ error: 'Hozzáférés megtagadva! Érvénytelen vagy hiányzó token.' });
+  }
+
+  req.user = activeTokens.get(token);
+  next();
+}
 
 // Minimalista kérésnaplózó (logger) middleware státuszkóddal
 app.use((req, res, next) => {
@@ -35,6 +54,32 @@ app.get('/', (req, res) => {
   res.json({ message: 'Express szerver sikeresen fut!' });
 });
 
+// Bejelentkezés végpont (plain text jelszó ellenőrzéssel és egyszerű token visszaadásával)
+app.post('/api/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Az email és jelszó megadása kötelező.' });
+    }
+
+    const user = await User.findOne({ where: { email, password } });
+    if (!user) {
+      return res.status(401).json({ error: 'Hibás email cím vagy jelszó.' });
+    }
+
+    const token = crypto.randomUUID();
+    activeTokens.set(token, { id: user.id, email: user.email });
+
+    res.json({
+      message: 'Sikeres bejelentkezés!',
+      token,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Hiba történt a bejelentkezés során.' });
+  }
+});
+
 // Felhasználók lekérdezése
 app.get('/api/users', async (req, res) => {
   try {
@@ -55,8 +100,8 @@ app.get('/api/tasks', async (req, res) => {
   }
 });
 
-// Kapcsolótábla lekérdezése: Taskonként egy tömbben a hozzájuk rendelt felhasználók
-app.get('/api/taskusers', async (req, res) => {
+// Kapcsolótábla lekérdezése: Csak autentikált felhasználóknak elérhető
+app.get('/api/taskusers', authenticateToken, async (req, res) => {
   try {
     const tasksWithUsers = await Task.findAll({
       attributes: ['id', 'title'],
