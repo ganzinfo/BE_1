@@ -42,4 +42,10 @@ Content-Type: application/json
   "password": "password123"
 }
 
+### Felhasználó logikai törlése (DELETE /api/users/:id vagy /api/deleteuser/:id)
+DELETE http://localhost:3000/api/users/8
+
+### Újra lekérdezés a törlés után (a törölt nem szerepelhet) (GET /api/users)
+GET http://localhost:3000/api/users
+
 

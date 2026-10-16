@@ -61,9 +61,25 @@ export async function createUser(req, res) {
   }
 }
 
+/**
+ * Felhasználó logikai törlése (inaktiválása) ID alapján.
+ */
+export async function deleteUser(req, res) {
+  try {
+    const id = req.params.id || req.body.id || req.query.id;
+    const result = await userService.deleteUser(id);
+    res.json(result);
+  } catch (error) {
+    const status = error.statusCode || 500;
+    const message = error.statusCode ? error.message : 'Nem sikerült törölni a felhasználót.';
+    res.status(status).json({ error: message });
+  }
+}
+
 export default {
   login,
   getUsers,
   createUser,
+  deleteUser,
   authenticateToken,
 };

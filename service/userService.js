@@ -87,10 +87,43 @@ export async function createUser(userData) {
   });
 }
 
+/**
+ * Felhasználó logikai törlése azonosító alapján (üzleti logika).
+ * Ellenőrzi a felhasználó létezését, és ha még nem volt törölve, beállítja a deleted flaget true-ra.
+ */
+export async function deleteUser(id) {
+  if (!id) {
+    const error = new Error('A felhasználó azonosítójának (ID) megadása kötelező.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const user = await userRepository.findById(id);
+  if (!user) {
+    const error = new Error('A megadott azonosítójú felhasználó nem található.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (user.deleted) {
+    const error = new Error('A felhasználó már korábban törölve lett.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  await userRepository.softDelete(id);
+
+  return {
+    message: 'Felhasználó sikeresen inaktiválva (logikailag törölve)!',
+    id: Number(id),
+  };
+}
+
 export default {
   getAllUsers,
   getUserById,
   login,
   verifyToken,
   createUser,
+  deleteUser,
 };

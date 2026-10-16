@@ -27,5 +27,10 @@ export const User = sequelize.define('User', {
     allowNull: false,
     defaultValue: 'password123',
   },
+  deleted: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
 });
 

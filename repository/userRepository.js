@@ -1,10 +1,14 @@
 import { User } from '../models/User.js';
 
 /**
- * Összes felhasználó lekérdezése az adatbázisból.
+ * Nem törölt (aktív) felhasználók lekérdezése az adatbázisból.
  */
 export async function findAll() {
-  return await User.findAll();
+  return await User.findAll({
+    where: {
+      deleted: false,
+    },
+  });
 }
 
 /**
@@ -22,10 +26,10 @@ export async function findByEmail(email) {
 }
 
 /**
- * Felhasználó keresése email és jelszó alapján (bejelentkezéshez).
+ * Felhasználó keresése email és jelszó alapján (bejelentkezéshez, csak aktív felhasználók).
  */
 export async function findByCredentials(email, password) {
-  return await User.findOne({ where: { email, password } });
+  return await User.findOne({ where: { email, password, deleted: false } });
 }
 
 /**
@@ -35,10 +39,24 @@ export async function create(userData) {
   return await User.create(userData);
 }
 
+/**
+ * Felhasználó logikai törlése (deleted = true).
+ */
+export async function softDelete(id) {
+  const user = await User.findByPk(id);
+  if (!user) {
+    return null;
+  }
+  user.deleted = true;
+  await user.save();
+  return user;
+}
+
 export default {
   findAll,
   findById,
   findByEmail,
   findByCredentials,
   create,
+  softDelete,
 };
