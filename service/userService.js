@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 import * as userRepository from '../repository/userRepository.js';
 
 // In-memory tokentároló az aktív bejelentkezésekhez
@@ -20,7 +21,7 @@ export async function getUserById(id) {
 
 /**
  * Bejelentkezés és token kiállítás.
- * Validálja a megadott adatokat, ellenőrzi a felhasználót a repository-n keresztül,
+ * Validálja a megadott adatokat, ellenőrzi a felhasználó hitelesítő adatait és bcrypt jelszavát a repository-n keresztül,
  * majd sikeres egyezés esetén tokent generál és tárol.
  */
 export async function login(email, password) {
@@ -35,6 +36,12 @@ export async function login(email, password) {
     const error = new Error('Hibás email cím vagy jelszó.');
     error.statusCode = 401;
     throw error;
+  }
+
+  // Ha a felhasználó jelszava korábbról még nem bcrypt formátumú volt, frissítjük
+  if (user.password && !user.password.startsWith('$2')) {
+    user.password = await bcrypt.hash(password, 10);
+    await user.save();
   }
 
   const token = crypto.randomUUID();
@@ -78,12 +85,16 @@ export async function createUser(userData) {
     throw error;
   }
 
+  // Jelszó hashelése bcrypt segítségével (ha nincs megadva, az alapértelmezett 'password123'-at hasheljük)
+  const plainPassword = password || 'password123';
+  const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
   return await userRepository.create({
     firstName,
     lastName,
     email,
     birthYear,
-    password: password || 'password123',
+    password: hashedPassword,
   });
 }
 

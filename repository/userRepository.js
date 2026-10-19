@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import { User } from '../models/User.js';
 
 /**
@@ -27,9 +28,22 @@ export async function findByEmail(email) {
 
 /**
  * Felhasználó keresése email és jelszó alapján (bejelentkezéshez, csak aktív felhasználók).
+ * A jelszó egyezést bcrypt segítségével vizsgálja.
  */
 export async function findByCredentials(email, password) {
-  return await User.findOne({ where: { email, password, deleted: false } });
+  const user = await User.findOne({ where: { email, deleted: false } });
+  if (!user) {
+    return null;
+  }
+
+  let isMatch = false;
+  if (user.password && user.password.startsWith('$2')) {
+    isMatch = await bcrypt.compare(password, user.password);
+  } else {
+    isMatch = user.password === password;
+  }
+
+  return isMatch ? user : null;
 }
 
 /**

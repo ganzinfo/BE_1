@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import { User } from '../models/User.js';
 
 export const dummyUsers = [
@@ -28,5 +29,20 @@ export async function checkEmptyTable() {
   if (count === 0) {
     await User.bulkCreate(dummyUsers);
     console.log('🌱 20 dummy felhasználó sikeresen hozzáadva az adatbázishoz.');
+  } else {
+    // Meglévő titkosítatlan (plaintext) jelszavak migrálása bcrypt hash-re
+    const users = await User.findAll();
+    let migratedCount = 0;
+    for (const user of users) {
+      if (user.password && !user.password.startsWith('$2')) {
+        user.password = await bcrypt.hash(user.password, 10);
+        await user.save();
+        migratedCount++;
+      }
+    }
+    if (migratedCount > 0) {
+      console.log(`🔒 ${migratedCount} korábbi felhasználó jelszava sikeresen titkosítva lett (bcrypt).`);
+    }
   }
 }
+

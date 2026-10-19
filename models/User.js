@@ -1,4 +1,5 @@
 import { DataTypes } from 'sequelize';
+import bcrypt from 'bcrypt';
 import { sequelize } from '../db.js';
 
 export const User = sequelize.define('User', {
@@ -31,6 +32,26 @@ export const User = sequelize.define('User', {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false,
+  },
+}, {
+  hooks: {
+    beforeCreate: async (user) => {
+      if (user.password && !user.password.startsWith('$2')) {
+        user.password = await bcrypt.hash(user.password, 10);
+      }
+    },
+    beforeBulkCreate: async (users) => {
+      for (const user of users) {
+        if (user.password && !user.password.startsWith('$2')) {
+          user.password = await bcrypt.hash(user.password, 10);
+        }
+      }
+    },
+    beforeUpdate: async (user) => {
+      if (user.changed('password') && user.password && !user.password.startsWith('$2')) {
+        user.password = await bcrypt.hash(user.password, 10);
+      }
+    },
   },
 });
 
