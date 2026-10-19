@@ -47,8 +47,7 @@ app.post('/api/users', userController.createUser);
 app.post('/api/createuser', userController.createUser);
 
 // Felhasználó logikai törlése (deleted flag = true)
-app.delete('/api/users/:id', userController.deleteUser);
-app.delete('/api/deleteuser/:id', userController.deleteUser);
+app.post('/api/deleteuser/:id', userController.deleteUser);
 
 // Feladatok lekérdezése
 app.get('/api/tasks', taskController.getTasks);
