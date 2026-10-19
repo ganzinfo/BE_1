@@ -66,11 +66,34 @@ export async function softDelete(id) {
   return user;
 }
 
+/**
+ * Felhasználó keresése az utolsó token alapján (csak aktív, nem törölt felhasználók).
+ */
+export async function findByToken(token) {
+  return await User.findOne({ where: { token, deleted: false } });
+}
+
+/**
+ * Felhasználó utolsó tokenjének és lejárati idejének frissítése az adatbázisban.
+ */
+export async function updateToken(id, token, tokenExpiresAt) {
+  const user = await User.findByPk(id);
+  if (!user) {
+    return null;
+  }
+  user.token = token;
+  user.tokenExpiresAt = tokenExpiresAt;
+  await user.save();
+  return user;
+}
+
 export default {
   findAll,
   findById,
   findByEmail,
   findByCredentials,
+  findByToken,
+  updateToken,
   create,
   softDelete,
 };

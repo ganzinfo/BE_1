@@ -20,9 +20,9 @@ export async function getTaskById(id) {
  * Üzleti szabály: Csak érvényes tokennel rendelkező felhasználók számára elérhető.
  */
 export async function getTasksWithUsers(token) {
-  const user = userService.verifyToken(token);
+  const user = await userService.verifyToken(token);
   if (!user) {
-    const error = new Error('Hozzáférés megtagadva! Érvénytelen vagy hiányzó token.');
+    const error = new Error('Hozzáférés megtagadva! Érvénytelen vagy lejárt token.');
     error.statusCode = 401;
     throw error;
   }

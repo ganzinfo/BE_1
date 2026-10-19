@@ -7,8 +7,8 @@ import * as userService from '../service/userService.js';
  */
 export async function login(req, res) {
   try {
-    const { email, password } = req.body;
-    const result = await userService.login(email, password);
+    const { email, password, expirationMinutes } = req.body;
+    const result = await userService.login(email, password, expirationMinutes);
     res.json(result);
   } catch (error) {
     const status = error.statusCode || 500;
@@ -32,15 +32,15 @@ export async function getUsers(req, res) {
 /**
  * Opcionális autentikációs middleware, amely a service réteget hívja a token ellenőrzésére.
  */
-export function authenticateToken(req, res, next) {
+export async function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader?.startsWith('Bearer ')
     ? authHeader.slice(7)
     : authHeader || req.query.token;
 
-  const user = userService.verifyToken(token);
+  const user = await userService.verifyToken(token);
   if (!user) {
-    return res.status(401).json({ error: 'Hozzáférés megtagadva! Érvénytelen vagy hiányzó token.' });
+    return res.status(401).json({ error: 'Hozzáférés megtagadva! Érvénytelen vagy lejárt token.' });
   }
 
   req.user = user;

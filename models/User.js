@@ -33,6 +33,14 @@ export const User = sequelize.define('User', {
     allowNull: false,
     defaultValue: false,
   },
+  token: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  tokenExpiresAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
 }, {
   hooks: {
     beforeCreate: async (user) => {

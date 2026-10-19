@@ -2,7 +2,10 @@ import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import * as userRepository from '../repository/userRepository.js';
 
-// In-memory tokentároló az aktív bejelentkezésekhez
+// Alapértelmezett token érvényességi idő percben megadva (pl. 15 perc)
+export const TOKEN_EXPIRATION_MINUTES = Number(process.env.TOKEN_EXPIRATION_MINUTES) || 3;
+
+// In-memory tokentároló az aktív bejelentkezések gyors eléréséhez
 const activeTokens = new Map();
 
 /**
@@ -21,10 +24,11 @@ export async function getUserById(id) {
 
 /**
  * Bejelentkezés és token kiállítás.
- * Validálja a megadott adatokat, ellenőrzi a felhasználó hitelesítő adatait és bcrypt jelszavát a repository-n keresztül,
- * majd sikeres egyezés esetén tokent generál és tárol.
+ * Validálja a megadott adatokat, ellenőrzi a felhasználó hitelesítő adatait és bcrypt jelszavát.
+ * Sikeres azonosítás esetén tokent generál a megadott érvényességi idővel (percben),
+ * és az utolsó tokent a lejárati idejével együtt elmenti a User táblába.
  */
-export async function login(email, password) {
+export async function login(email, password, expirationMinutes = TOKEN_EXPIRATION_MINUTES) {
   if (!email || !password) {
     const error = new Error('Az email és jelszó megadása kötelező.');
     error.statusCode = 400;
@@ -41,27 +45,75 @@ export async function login(email, password) {
   // Ha a felhasználó jelszava korábbról még nem bcrypt formátumú volt, frissítjük
   if (user.password && !user.password.startsWith('$2')) {
     user.password = await bcrypt.hash(password, 10);
-    await user.save();
   }
 
+  // Érvényességi idő percben és lejárati dátum kiszámítása
+  const validityMinutes = Number(expirationMinutes) > 0 ? Number(expirationMinutes) : TOKEN_EXPIRATION_MINUTES;
   const token = crypto.randomUUID();
-  activeTokens.set(token, { id: user.id, email: user.email });
+  const tokenExpiresAt = new Date(Date.now() + validityMinutes * 60 * 1000);
+
+  // Az utolsó token és a lejárati idő tárolása a User táblában
+  user.token = token;
+  user.tokenExpiresAt = tokenExpiresAt;
+  await user.save();
+
+  // In-memory gyorsítótár frissítése
+  activeTokens.set(token, {
+    id: user.id,
+    email: user.email,
+    tokenExpiresAt,
+  });
 
   return {
     message: 'Sikeres bejelentkezés!',
     token,
+    expiresInMinutes: validityMinutes,
+    tokenExpiresAt,
   };
 }
 
 /**
  * Token érvényességének ellenőrzése.
- * Visszaadja a bejelentkezett felhasználó adatait, vagy null-t, ha a token érvénytelen.
+ * Ellenőrzi a tokent az adatbázisban (és a gyorsítótárban), valamint megvizsgálja,
+ * hogy nem járt-e le az érvényességi ideje.
+ * Visszaadja a felhasználó adatait, vagy null-t, ha a token érvénytelen vagy lejárt.
  */
-export function verifyToken(token) {
-  if (!token || !activeTokens.has(token)) {
+export async function verifyToken(token) {
+  if (!token) {
     return null;
   }
-  return activeTokens.get(token);
+
+  const now = new Date();
+
+  // 1. Ellenőrzés az in-memory memóriatárból
+  if (activeTokens.has(token)) {
+    const session = activeTokens.get(token);
+    if (session.tokenExpiresAt && new Date(session.tokenExpiresAt) <= now) {
+      activeTokens.delete(token);
+      return null; // A token lejárt
+    }
+    return session;
+  }
+
+  // 2. Ha memóriában nem található (pl. szerver újraindult), ellenőrizzük az adatbázisban az utolsó elmentett tokent
+  const user = await userRepository.findByToken(token);
+  if (!user || user.deleted) {
+    return null;
+  }
+
+  // Megvizsgáljuk, hogy lejárt-e a token
+  if (user.tokenExpiresAt && new Date(user.tokenExpiresAt) <= now) {
+    return null; // A token lejárt
+  }
+
+  const session = {
+    id: user.id,
+    email: user.email,
+    tokenExpiresAt: user.tokenExpiresAt,
+  };
+  activeTokens.set(token, session);
+
+  return session;
 }
 
 /**
@@ -131,6 +183,7 @@ export async function deleteUser(id) {
 }
 
 export default {
+  TOKEN_EXPIRATION_MINUTES,
   getAllUsers,
   getUserById,
   login,
@@ -138,3 +191,4 @@ export default {
   createUser,
   deleteUser,
 };
+

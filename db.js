@@ -15,12 +15,23 @@ export async function connectDB() {
     await sequelize.query('DROP TABLE IF EXISTS `Users_backup`;');
     await sequelize.sync();
 
-    // SQLite-ban biztonságosan hozzáadjuk a deleted oszlopot, ha még nem létezik
+    // SQLite-ban biztonságosan hozzáadjuk a hiányzó oszlopokat, ha még nem léteznek
     const [columns] = await sequelize.query("PRAGMA table_info('Users');");
-    const hasDeleted = columns.some((col) => col.name === 'deleted');
-    if (!hasDeleted) {
+    const columnNames = columns.map((col) => col.name);
+
+    if (!columnNames.includes('deleted')) {
       await sequelize.query('ALTER TABLE `Users` ADD COLUMN `deleted` INTEGER NOT NULL DEFAULT 0;');
       console.log('✅ "deleted" oszlop sikeresen hozzáadva a Users táblához.');
+    }
+
+    if (!columnNames.includes('token')) {
+      await sequelize.query('ALTER TABLE `Users` ADD COLUMN `token` TEXT;');
+      console.log('✅ "token" oszlop sikeresen hozzáadva a Users táblához.');
+    }
+
+    if (!columnNames.includes('tokenExpiresAt')) {
+      await sequelize.query('ALTER TABLE `Users` ADD COLUMN `tokenExpiresAt` DATETIME;');
+      console.log('✅ "tokenExpiresAt" oszlop sikeresen hozzáadva a Users táblához.');
     }
 
     console.log('✅ SQLite adatbázis kapcsolat sikeresen felépült.');
