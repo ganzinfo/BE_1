@@ -48,7 +48,7 @@ GET http://localhost:3000/api/tasks
 
 ### Összes feladat lekérdezése User joggal (GET /api/tasks)
 GET http://localhost:3000/api/tasks
-Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+Authorization: 1218cd91-5dc6-4594-b574-d19511480612
 
 ### Új felhasználó létrehozása User joggal (POST /api/users vagy /api/createuser)
 POST http://localhost:3000/api/users
@@ -87,11 +87,11 @@ GET http://localhost:3000/api/taskusers
 
 ### Kapcsolótábla lekérdezése sima (NEM ADMIN) felhasználói tokennel (várhatóan 403 Hiba)
 GET http://localhost:3000/api/taskusers
-Authorization: Bearer ILLUSD_IDE_A_NEM_ADMIN_USER_TOKENJET
+Authorization: Bearer d7a0505c-7230-43f1-bd77-f9b2fc33c86b
 
 ### Kapcsolótábla lekérdezése ADMIN tokennel (GET /api/taskusers) (200 OK)
 GET http://localhost:3000/api/taskusers
-Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+Authorization: Bearer 382b2baa-924e-4b5b-885e-5dd998c57af5
 
 
 

@@ -43,8 +43,17 @@ export const User = sequelize.define('User', {
     allowNull: true,
   },
   tokenExpiresAt: {
-    type: DataTypes.DATE,
+    type: DataTypes.STRING,
     allowNull: true,
+    set(val) {
+      if (val instanceof Date) {
+        const pad = (n) => String(n).padStart(2, '0');
+        const str = `${val.getFullYear()}-${pad(val.getMonth() + 1)}-${pad(val.getDate())} ${pad(val.getHours())}:${pad(val.getMinutes())}:${pad(val.getSeconds())}`;
+        this.setDataValue('tokenExpiresAt', str);
+      } else {
+        this.setDataValue('tokenExpiresAt', val);
+      }
+    },
   },
 }, {
   hooks: {

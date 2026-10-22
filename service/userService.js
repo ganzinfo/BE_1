@@ -3,10 +3,50 @@ import bcrypt from 'bcrypt';
 import * as userRepository from '../repository/userRepository.js';
 
 // Alapértelmezett token érvényességi idő percben megadva (pl. 15 perc)
-export const TOKEN_EXPIRATION_MINUTES = Number(process.env.TOKEN_EXPIRATION_MINUTES) || 3;
+export const TOKEN_EXPIRATION_MINUTES = Number(process.env.TOKEN_EXPIRATION_MINUTES) || 10;
 
 // In-memory tokentároló az aktív bejelentkezések gyors eléréséhez
 const activeTokens = new Map();
+
+/**
+ * Visszaadja a megadott dátumot a helyi időzóna szerint formázott szövegként (YYYY-MM-DD HH:mm:ss).
+ * A JavaScript beépített Date metódusai (getFullYear, getHours, stb.) automatikusan a helyi időzónát
+ * és az aktuális téli / nyári időszámítást (daylight saving time, CET / CEST) alkalmazzák.
+ */
+export function getLocalDateTime(date = new Date()) {
+  const d = date instanceof Date ? date : new Date(date);
+  const pad = (num) => String(num).padStart(2, '0');
+  const year = d.getFullYear();
+  const month = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
+  const seconds = pad(d.getSeconds());
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+/**
+ * Helyi idő stringet alakít át Date objektummá a helyi időzóna és a téli/nyári időszámítás szerint.
+ * A Date(year, monthIndex, day, hours, minutes, seconds) konstruktor a helyi időzóna és az adott
+ * időpontra érvényes téli/nyári időszámítás szerint állítja elő a pillanatot.
+ */
+export function parseLocalDateTime(dateStr) {
+  if (!dateStr) return null;
+  if (dateStr instanceof Date) return dateStr;
+
+  // Ha a szöveg végén explicit időzóna eltérés található (pl. +00:00 vagy Z), azt a new Date közvetlenül kezeli
+  if (typeof dateStr === 'string' && (dateStr.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(dateStr))) {
+    return new Date(dateStr);
+  }
+
+  // Helyi idő string (pl. 'YYYY-MM-DD HH:mm:ss' vagy 'YYYY-MM-DDTHH:mm:ss')
+  const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+  if (match) {
+    const [, year, month, day, hours, minutes, seconds] = match;
+    return new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes), Number(seconds));
+  }
+  return new Date(dateStr);
+}
 
 /**
  * Összes felhasználó lekérdezése (üzleti logika).
@@ -47,12 +87,13 @@ export async function login(email, password, expirationMinutes = TOKEN_EXPIRATIO
     user.password = await bcrypt.hash(password, 10);
   }
 
-  // Érvényességi idő percben és lejárati dátum kiszámítása
+  // Érvényességi idő percben és lejárati dátum kiszámítása a helyi időzónában (téli/nyári időszámítással)
   const validityMinutes = Number(expirationMinutes) > 0 ? Number(expirationMinutes) : TOKEN_EXPIRATION_MINUTES;
   const token = crypto.randomUUID();
-  const tokenExpiresAt = new Date(Date.now() + validityMinutes * 60 * 1000);
+  const expiresDate = new Date(Date.now() + validityMinutes * 60 * 1000);
+  const tokenExpiresAt = getLocalDateTime(expiresDate);
 
-  // Az utolsó token és a lejárati idő tárolása a User táblában
+  // Az utolsó token és a lejárati idő tárolása a User táblában a helyi időzóna szerint
   user.token = token;
   user.tokenExpiresAt = tokenExpiresAt;
   await user.save();
@@ -76,8 +117,8 @@ export async function login(email, password, expirationMinutes = TOKEN_EXPIRATIO
 
 /**
  * Token érvényességének ellenőrzése.
- * Ellenőrzi a tokent az adatbázisban (és a gyorsítótárban), valamint megvizsgálja,
- * hogy nem járt-e le az érvényességi ideje.
+ * Ellenőrzi a tokent az adatbázisban (és a gyorsítótárban), valamint megvizsgálja a helyi időzóna
+ * (téli / nyári időszámítás) szerint, hogy nem járt-e le az érvényességi ideje.
  * Visszaadja a felhasználó adatait, vagy null-t, ha a token érvénytelen vagy lejárt.
  */
 export async function verifyToken(token) {
@@ -90,7 +131,8 @@ export async function verifyToken(token) {
   // 1. Ellenőrzés az in-memory memóriatárból
   if (activeTokens.has(token)) {
     const session = activeTokens.get(token);
-    if (session.tokenExpiresAt && new Date(session.tokenExpiresAt) <= now) {
+    const expiresDate = parseLocalDateTime(session.tokenExpiresAt);
+    if (expiresDate && expiresDate <= now) {
       activeTokens.delete(token);
       return null; // A token lejárt
     }
@@ -103,8 +145,9 @@ export async function verifyToken(token) {
     return null;
   }
 
-  // Megvizsgáljuk, hogy lejárt-e a token
-  if (user.tokenExpiresAt && new Date(user.tokenExpiresAt) <= now) {
+  // Megvizsgáljuk, hogy lejárt-e a token a helyi időzóna alapján
+  const userExpiresDate = parseLocalDateTime(user.tokenExpiresAt);
+  if (userExpiresDate && userExpiresDate <= now) {
     return null; // A token lejárt
   }
 
@@ -197,5 +240,7 @@ export default {
   verifyToken,
   createUser,
   deleteUser,
+  getLocalDateTime,
+  parseLocalDateTime,
 };
 
