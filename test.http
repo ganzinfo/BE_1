@@ -1,16 +1,15 @@
-### Gyökér végpont tesztelése (GET /)
+### Gyökér végpont tesztelése belépés NÉLKÜL (udvarias elutasító üzenet, 401 Hiba)
 GET http://localhost:3000/
 
-### Favicon tesztelése (GET /favicon.ico)
+### Gyökér végpont tesztelése bejelentkezve (GET /)
+# Cseréld ki a tokent a bejelentkezéskor kapott tokenre!
+GET http://localhost:3000/
+Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+
+### Favicon tesztelése (GET /favicon.ico) (Nyilvános)
 GET http://localhost:3000/favicon.ico
 
-### Összes felhasználó lekérdezése (GET /api/users)
-GET http://localhost:3000/api/users
-
-### Összes feladat lekérdezése (GET /api/tasks)
-GET http://localhost:3000/api/tasks
-
-### Sikeres bejelentkezés tesztelése alapértelmezett érvényességgel (15 perc) (POST /api/login)
+### Sikeres bejelentkezés - Admin felhasználó (Kovács Bence) (POST /api/login)
 POST http://localhost:3000/api/login
 Content-Type: application/json
 
@@ -19,16 +18,14 @@ Content-Type: application/json
   "password": "password123"
 }
 
-### Bejelentkezés egyedi érvényességi idővel percben megadva (pl. 30 perc) (POST /api/login)
+### Sikeres bejelentkezés - Sima (nem admin) felhasználó (Tóth Dániel) (POST /api/login)
 POST http://localhost:3000/api/login
 Content-Type: application/json
 
 {
-  "email": "bence.kovacs@example.com",
-  "password": "password123",
-  "expirationMinutes": 2
+  "email": "daniel.toth@example.com",
+  "password": "password123"
 }
-
 
 ### Sikertelen bejelentkezés hibás jelszóval (várhatóan 401 Hiba)
 POST http://localhost:3000/api/login
@@ -39,20 +36,23 @@ Content-Type: application/json
   "password": "rosszjelszo"
 }
 
+### Összes felhasználó lekérdezése token NÉLKÜL (várhatóan 401 Hiba)
+GET http://localhost:3000/api/users
 
-### Kapcsolótábla lekérdezése token NÉLKÜL (várhatóan 401 Hiba)
-GET http://localhost:3000/api/taskusers
-
-### Kapcsolótábla lekérdezése tokennel (Authorization Header)
-# Cseréld ki a tokent a login során kapott tokenre!
-GET http://localhost:3000/api/taskusers
+### Összes felhasználó lekérdezése User joggal (GET /api/users)
+GET http://localhost:3000/api/users
 Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
 
-### Kapcsolótábla lekérdezése tokennel query paraméterként
-# GET http://localhost:3000/api/taskusers?token=ILLUSD_IDE_A_TOKENT
+### Összes feladat lekérdezése token NÉLKÜL (várhatóan 401 Hiba)
+GET http://localhost:3000/api/tasks
 
-### Új felhasználó létrehozása (POST /api/users vagy /api/createuser)
+### Összes feladat lekérdezése User joggal (GET /api/tasks)
+GET http://localhost:3000/api/tasks
+Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+
+### Új felhasználó létrehozása User joggal (POST /api/users vagy /api/createuser)
 POST http://localhost:3000/api/users
+Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
 Content-Type: application/json
 
 {
@@ -64,8 +64,9 @@ Content-Type: application/json
   "isAdmin": false
 }
 
-### Új admin felhasználó létrehozása (POST /api/users vagy /api/createuser)
+### Új admin felhasználó létrehozása User joggal (POST /api/users vagy /api/createuser)
 POST http://localhost:3000/api/users
+Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
 Content-Type: application/json
 
 {
@@ -77,10 +78,20 @@ Content-Type: application/json
   "isAdmin": true
 }
 
-### Felhasználó logikai törlése (DELETE /api/users/:id vagy /api/deleteuser/:id)
+### Felhasználó logikai törlése User joggal (POST /api/deleteuser/:id)
 POST http://localhost:3000/api/deleteuser/16
+Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
 
-### Újra lekérdezés a törlés után (a törölt nem szerepelhet) (GET /api/users)
-GET http://localhost:3000/api/users
+### Kapcsolótábla lekérdezése token NÉLKÜL (várhatóan 401 Hiba)
+GET http://localhost:3000/api/taskusers
+
+### Kapcsolótábla lekérdezése sima (NEM ADMIN) felhasználói tokennel (várhatóan 403 Hiba)
+GET http://localhost:3000/api/taskusers
+Authorization: Bearer ILLUSD_IDE_A_NEM_ADMIN_USER_TOKENJET
+
+### Kapcsolótábla lekérdezése ADMIN tokennel (GET /api/taskusers) (200 OK)
+GET http://localhost:3000/api/taskusers
+Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+
 
 

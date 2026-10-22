@@ -17,13 +17,19 @@ export async function getTaskById(id) {
 
 /**
  * Feladatok és a hozzájuk rendelt felhasználók lekérdezése.
- * Üzleti szabály: Csak érvényes tokennel rendelkező felhasználók számára elérhető.
+ * Üzleti szabály: Csak érvényes tokennel és adminisztrátori jogosultsággal (admin jog) rendelkező felhasználók számára elérhető.
  */
 export async function getTasksWithUsers(token) {
   const user = await userService.verifyToken(token);
   if (!user) {
     const error = new Error('Hozzáférés megtagadva! Érvénytelen vagy lejárt token.');
     error.statusCode = 401;
+    throw error;
+  }
+
+  if (!user.isAdmin) {
+    const error = new Error('Hozzáférés megtagadva! Ehhez a művelethez adminisztrátori jogosultság szükséges.');
+    error.statusCode = 403;
     throw error;
   }
 

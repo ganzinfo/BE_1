@@ -5,6 +5,7 @@ import { checkEmptyTable as checkEmptyUsersTable } from './z_dummy_data/users_du
 import { checkEmptyTable as checkEmptyTasksTable } from './z_dummy_data/tasks_dummy.js';
 import * as userController from './controller/userController.js';
 import * as taskController from './controller/taskController.js';
+import * as userService from './service/userService.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,31 +30,52 @@ app.get('/favicon.ico', (req, res) => {
   res.sendFile(path.resolve('public/favicon.svg'));
 });
 
-// Alapértelmezett teszt útvonal
-app.get('/', (req, res) => {
-  res.json({ message: 'Express szerver sikeresen fut!' });
+// Alapértelmezett teszt útvonal: belépés nélkül udvarias elutasító üzenet, belépéssel üdvözlés
+app.get('/', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : authHeader || req.headers['token'] || req.query.token;
+
+  const user = token ? await userService.verifyToken(token) : null;
+  if (!user) {
+    return res.status(401).json({
+      message: 'Kérjük, szíveskedjen bejelentkezni a rendszer használatához! Bejelentkezés nélkül a szolgáltatás sajnos nem érhető el.',
+    });
+  }
+
+  res.json({
+    message: 'Express szerver sikeresen fut! Üdvözöljük a rendszerben.',
+    user: {
+      id: user.id,
+      email: user.email,
+      isAdmin: user.isAdmin,
+    },
+  });
 });
 
 // --- API Útvonalak (A kérések kezelését a Controller réteg végzi) ---
 
-// Bejelentkezés végpont
+// Bejelentkezés végpont (nyilvános)
 app.post('/api/login', userController.login);
 
-// Felhasználók lekérdezése
-app.get('/api/users', userController.getUsers);
+// Felhasználók lekérdezése (User joggal elérhető)
+app.get('/api/users', userController.authenticateToken, userController.getUsers);
 
-// Új felhasználó létrehozása
-app.post('/api/users', userController.createUser);
-app.post('/api/createuser', userController.createUser);
+// Új felhasználó létrehozása (User joggal elérhető)
+app.post('/api/users', userController.authenticateToken, userController.createUser);
+app.post('/api/createuser', userController.authenticateToken, userController.createUser);
 
-// Felhasználó logikai törlése (deleted flag = true)
-app.post('/api/deleteuser/:id', userController.deleteUser);
+// Felhasználó logikai törlése (deleted flag = true) (User joggal elérhető)
+app.post('/api/deleteuser/:id', userController.authenticateToken, userController.deleteUser);
+app.delete('/api/deleteuser/:id', userController.authenticateToken, userController.deleteUser);
+app.delete('/api/users/:id', userController.authenticateToken, userController.deleteUser);
 
-// Feladatok lekérdezése
-app.get('/api/tasks', taskController.getTasks);
+// Feladatok lekérdezése (User joggal elérhető)
+app.get('/api/tasks', userController.authenticateToken, taskController.getTasks);
 
-// Feladatok és hozzájuk rendelt felhasználók lekérdezése (Védett végpont, autentikáció a Service rétegben)
-app.get('/api/taskusers', taskController.getTaskUsers);
+// Feladatok és hozzájuk rendelt felhasználók lekérdezése (Admin joggal elérhető)
+app.get('/api/taskusers', userController.authenticateAdmin, taskController.getTaskUsers);
 
 // Szerver indítása és adatbázis kapcsolat
 app.listen(PORT, async () => {

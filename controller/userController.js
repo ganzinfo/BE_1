@@ -30,13 +30,13 @@ export async function getUsers(req, res) {
 }
 
 /**
- * Opcionális autentikációs middleware, amely a service réteget hívja a token ellenőrzésére.
+ * Autentikációs middleware a bejelentkezett felhasználók (user jog) ellenőrzésére.
  */
 export async function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader?.startsWith('Bearer ')
     ? authHeader.slice(7)
-    : authHeader || req.query.token;
+    : authHeader || req.headers['token'] || req.query.token;
 
   const user = await userService.verifyToken(token);
   if (!user) {
@@ -46,6 +46,29 @@ export async function authenticateToken(req, res, next) {
   req.user = user;
   next();
 }
+
+/**
+ * Autentikációs middleware az adminisztrátori jogosultság (admin jog) ellenőrzésére.
+ */
+export async function authenticateAdmin(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : authHeader || req.headers['token'] || req.query.token;
+
+  const user = await userService.verifyToken(token);
+  if (!user) {
+    return res.status(401).json({ error: 'Hozzáférés megtagadva! Érvénytelen vagy lejárt token.' });
+  }
+
+  if (!user.isAdmin) {
+    return res.status(403).json({ error: 'Hozzáférés megtagadva! Ehhez a művelethez adminisztrátori jogosultság szükséges.' });
+  }
+
+  req.user = user;
+  next();
+}
+
 
 /**
  * Új felhasználó létrehozása HTTP POST kérésre.
@@ -82,4 +105,5 @@ export default {
   createUser,
   deleteUser,
   authenticateToken,
+  authenticateAdmin,
 };
