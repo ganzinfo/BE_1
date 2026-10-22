@@ -26,7 +26,7 @@ Content-Type: application/json
 {
   "email": "bence.kovacs@example.com",
   "password": "password123",
-  "expirationMinutes": 30
+  "expirationMinutes": 2
 }
 
 
@@ -46,7 +46,7 @@ GET http://localhost:3000/api/taskusers
 ### Kapcsolótábla lekérdezése tokennel (Authorization Header)
 # Cseréld ki a tokent a login során kapott tokenre!
 GET http://localhost:3000/api/taskusers
-Authorization: Bearer 88f90ecc-f349-4a86-8f5e-1270bfacd33e
+Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
 
 ### Kapcsolótábla lekérdezése tokennel query paraméterként
 # GET http://localhost:3000/api/taskusers?token=ILLUSD_IDE_A_TOKENT
@@ -56,11 +56,25 @@ POST http://localhost:3000/api/users
 Content-Type: application/json
 
 {
-  "firstName": "Gábor",
-  "lastName": "Kovács",
-  "email": "gabor.kovacs@example.com",
-  "birthYear": 1995,
-  "password": "password123"
+  "firstName": "Kiss",
+  "lastName": "Pista",
+  "email": "pista.kiss@example.com",
+  "birthYear": 1996,
+  "password": "password123",
+  "isAdmin": false
+}
+
+### Új admin felhasználó létrehozása (POST /api/users vagy /api/createuser)
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+  "firstName": "Erika",
+  "lastName": "Varga",
+  "email": "erika.varga@example.com",
+  "birthYear": 1993,
+  "password": "password123",
+  "isAdmin": true
 }
 
 ### Felhasználó logikai törlése (DELETE /api/users/:id vagy /api/deleteuser/:id)

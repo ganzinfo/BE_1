@@ -33,6 +33,11 @@ export const User = sequelize.define('User', {
     allowNull: false,
     defaultValue: false,
   },
+  isAdmin: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   token: {
     type: DataTypes.STRING,
     allowNull: true,

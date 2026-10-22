@@ -24,6 +24,11 @@ export async function connectDB() {
       console.log('✅ "deleted" oszlop sikeresen hozzáadva a Users táblához.');
     }
 
+    if (!columnNames.includes('isAdmin')) {
+      await sequelize.query('ALTER TABLE `Users` ADD COLUMN `isAdmin` INTEGER NOT NULL DEFAULT 0;');
+      console.log('✅ "isAdmin" oszlop sikeresen hozzáadva a Users táblához.');
+    }
+
     if (!columnNames.includes('token')) {
       await sequelize.query('ALTER TABLE `Users` ADD COLUMN `token` TEXT;');
       console.log('✅ "token" oszlop sikeresen hozzáadva a Users táblához.');

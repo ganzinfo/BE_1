@@ -61,12 +61,14 @@ export async function login(email, password, expirationMinutes = TOKEN_EXPIRATIO
   activeTokens.set(token, {
     id: user.id,
     email: user.email,
+    isAdmin: user.isAdmin,
     tokenExpiresAt,
   });
 
   return {
     message: 'Sikeres bejelentkezés!',
     token,
+    isAdmin: user.isAdmin,
     expiresInMinutes: validityMinutes,
     tokenExpiresAt,
   };
@@ -109,6 +111,7 @@ export async function verifyToken(token) {
   const session = {
     id: user.id,
     email: user.email,
+    isAdmin: user.isAdmin,
     tokenExpiresAt: user.tokenExpiresAt,
   };
   activeTokens.set(token, session);
@@ -121,7 +124,7 @@ export async function verifyToken(token) {
  * Ellenőrzi a kötelező mezőket és az email egyediségét, majd a repository-n keresztül létrehozza a rekordot.
  */
 export async function createUser(userData) {
-  const { firstName, lastName, email, birthYear, password } = userData;
+  const { firstName, lastName, email, birthYear, password, isAdmin, admin } = userData;
 
   if (!firstName || !lastName || !email || !birthYear) {
     const error = new Error('A firstName, lastName, email és birthYear megadása kötelező.');
@@ -141,12 +144,16 @@ export async function createUser(userData) {
   const plainPassword = password || 'password123';
   const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
+  // Admin jogosultság beállítása (ha nincs megadva, alapértelmezetten false)
+  const userIsAdmin = isAdmin !== undefined ? Boolean(isAdmin) : (admin !== undefined ? Boolean(admin) : false);
+
   return await userRepository.create({
     firstName,
     lastName,
     email,
     birthYear,
     password: hashedPassword,
+    isAdmin: userIsAdmin,
   });
 }
 
