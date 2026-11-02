@@ -78,6 +78,32 @@ Content-Type: application/json
   "isAdmin": true
 }
 
+### Új felhasználó létrehozása - Hibás email validáció (várhatóan 400 Hiba)
+POST http://localhost:3000/api/users
+Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+Content-Type: application/json
+
+{
+  "firstName": "Hibás",
+  "lastName": "Email",
+  "email": "nem-valos-email-cim",
+  "birthYear": 1990,
+  "password": "password123"
+}
+
+### Új felhasználó létrehozása - Hibás születési év validáció (várhatóan 400 Hiba)
+POST http://localhost:3000/api/users
+Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+Content-Type: application/json
+
+{
+  "firstName": "Hibás",
+  "lastName": "Év",
+  "email": "teszt@example.com",
+  "birthYear": 1800,
+  "password": "password123"
+}
+
 ### Felhasználó logikai törlése User joggal (POST /api/deleteuser/:id)
 POST http://localhost:3000/api/deleteuser/16
 Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
