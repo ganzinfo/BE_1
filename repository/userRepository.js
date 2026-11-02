@@ -23,7 +23,10 @@ export async function findById(id) {
  * Felhasználó keresése email cím alapján.
  */
 export async function findByEmail(email) {
-  return await User.findOne({ where: { email } });
+  console.log(`[REPOSITORY] findByEmail -> SQL: keresés email alapján: "${email}"`);
+  const user = await User.findOne({ where: { email } });
+  console.log(`[REPOSITORY] findByEmail -> Eredmény: ${user ? `Találat (ID=${user.id})` : 'Nincs találat (szabad email)'}`);
+  return user;
 }
 
 /**
@@ -31,8 +34,10 @@ export async function findByEmail(email) {
  * A jelszó egyezést bcrypt segítségével vizsgálja.
  */
 export async function findByCredentials(email, password) {
+  console.log(`[REPOSITORY] findByCredentials -> SQL: keresés hitelesítő adatok alapján: "${email}" (deleted=false)`);
   const user = await User.findOne({ where: { email, deleted: false } });
   if (!user) {
+    console.log(`[REPOSITORY] findByCredentials -> Nincs ilyen aktív felhasználó az adatbázisban`);
     return null;
   }
 
@@ -43,6 +48,7 @@ export async function findByCredentials(email, password) {
     isMatch = user.password === password;
   }
 
+  console.log(`[REPOSITORY] findByCredentials -> Jelszó ellenőrzés eredménye: ${isMatch ? 'SIKERES egyezés' : 'HIBÁS jelszó'}`);
   return isMatch ? user : null;
 }
 
@@ -50,7 +56,10 @@ export async function findByCredentials(email, password) {
  * Új felhasználó létrehozása az adatbázisban.
  */
 export async function create(userData) {
-  return await User.create(userData);
+  console.log(`[REPOSITORY] create -> SQL: új User rekord beszúrása: email="${userData.email}"`);
+  const created = await User.create(userData);
+  console.log(`[REPOSITORY] create -> Beszúrva! Új rekord ID=${created.id}`);
+  return created;
 }
 
 /**
@@ -70,7 +79,10 @@ export async function softDelete(id) {
  * Felhasználó keresése az utolsó token alapján (csak aktív, nem törölt felhasználók).
  */
 export async function findByToken(token) {
-  return await User.findOne({ where: { token, deleted: false } });
+  console.log(`[REPOSITORY] findByToken -> SQL: SELECT * FROM Users WHERE token = "${token}" AND deleted = false`);
+  const user = await User.findOne({ where: { token, deleted: false } });
+  console.log(`[REPOSITORY] findByToken -> Eredmény: ${user ? `Találat! (ID=${user.id}, Email="${user.email}", tokenExpiresAt: ${user.tokenExpiresAt})` : 'NINCS találat az adatbázisban'}`);
+  return user;
 }
 
 /**

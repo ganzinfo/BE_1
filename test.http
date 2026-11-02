@@ -52,14 +52,14 @@ Authorization: 1218cd91-5dc6-4594-b574-d19511480612
 
 ### Új felhasználó létrehozása User joggal (POST /api/users vagy /api/createuser)
 POST http://localhost:3000/api/users
-Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+Authorization: Bearer 0487fc01-62e4-480e-b596-567a76ce94d0
 Content-Type: application/json
 
 {
-  "firstName": "Kiss",
+  "firstName": "Nagy",
   "lastName": "Pista",
-  "email": "pista.kiss@example.com",
-  "birthYear": 1996,
+  "email": "pista.nagy@example.com",
+  "birthYear": 1997,
   "password": "password123",
   "isAdmin": false
 }
@@ -93,7 +93,7 @@ Content-Type: application/json
 
 ### Új felhasználó létrehozása - Hibás születési év validáció (várhatóan 400 Hiba)
 POST http://localhost:3000/api/users
-Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+Authorization: Bearer 0487fc01-62e4-480e-b596-567a76ce94d0
 Content-Type: application/json
 
 {

@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import * as userRepository from '../repository/userRepository.js';
 
 // Alapértelmezett token érvényességi idő percben megadva (pl. 15 perc)
-export const TOKEN_EXPIRATION_MINUTES = Number(process.env.TOKEN_EXPIRATION_MINUTES) || 10;
+export const TOKEN_EXPIRATION_MINUTES = Number(process.env.TOKEN_EXPIRATION_MINUTES) || 20;
 
 // In-memory tokentároló az aktív bejelentkezések gyors eléréséhez
 const activeTokens = new Map();
@@ -69,14 +69,17 @@ export async function getUserById(id) {
  * és az utolsó tokent a lejárati idejével együtt elmenti a User táblába.
  */
 export async function login(email, password, expirationMinutes = TOKEN_EXPIRATION_MINUTES) {
+  console.log(`[SERVICE] login -> Bejelentkezési folyamat indítása: email="${email}"`);
   if (!email || !password) {
     const error = new Error('Az email és jelszó megadása kötelező.');
     error.statusCode = 400;
     throw error;
   }
 
+  console.log(`[SERVICE] login -> userRepository.findByCredentials hívása email="${email}" címre...`);
   const user = await userRepository.findByCredentials(email, password);
   if (!user) {
+    console.log(`[SERVICE] login -> Sikertelen hitelesítés: hibás email vagy jelszó`);
     const error = new Error('Hibás email cím vagy jelszó.');
     error.statusCode = 401;
     throw error;
@@ -97,6 +100,7 @@ export async function login(email, password, expirationMinutes = TOKEN_EXPIRATIO
   user.token = token;
   user.tokenExpiresAt = tokenExpiresAt;
   await user.save();
+  console.log(`[SERVICE] login -> Új token elmentve a User táblába: "${token}", lejár: ${tokenExpiresAt} (${validityMinutes} perc)`);
 
   // In-memory gyorsítótár frissítése
   activeTokens.set(token, {
@@ -105,6 +109,7 @@ export async function login(email, password, expirationMinutes = TOKEN_EXPIRATIO
     isAdmin: user.isAdmin,
     tokenExpiresAt,
   });
+  console.log(`[SERVICE] login -> In-memory gyorsítótár (activeTokens) frissítve`);
 
   return {
     message: 'Sikeres bejelentkezés!',
@@ -122,7 +127,9 @@ export async function login(email, password, expirationMinutes = TOKEN_EXPIRATIO
  * Visszaadja a felhasználó adatait, vagy null-t, ha a token érvénytelen vagy lejárt.
  */
 export async function verifyToken(token) {
+  console.log(`[SERVICE] verifyToken -> Token vizsgálatának kezdete: "${token || '(üres)'}"`);
   if (!token) {
+    console.log(`[SERVICE] verifyToken -> Nincs megadva token! null értékkel térünk vissza`);
     return null;
   }
 
@@ -130,27 +137,37 @@ export async function verifyToken(token) {
 
   // 1. Ellenőrzés az in-memory memóriatárból
   if (activeTokens.has(token)) {
+    console.log(`[SERVICE] verifyToken -> [1. LÉPÉS] Token megtalálva az in-memory gyorsítótárban`);
     const session = activeTokens.get(token);
     const expiresDate = parseLocalDateTime(session.tokenExpiresAt);
+    console.log(`[SERVICE] verifyToken -> Gyorsítótár lejárata: ${session.tokenExpiresAt}, Aktuális idő: ${getLocalDateTime(now)}`);
     if (expiresDate && expiresDate <= now) {
+      console.log(`[SERVICE] verifyToken -> A memóriában lévő token LEJÁRT! Törlés a memóriából.`);
       activeTokens.delete(token);
       return null; // A token lejárt
     }
+    console.log(`[SERVICE] verifyToken -> Memóriában lévő token ÉRVÉNYES! Felhasználó: ID=${session.id}, Email="${session.email}"`);
     return session;
   }
 
   // 2. Ha memóriában nem található (pl. szerver újraindult), ellenőrizzük az adatbázisban az utolsó elmentett tokent
+  console.log(`[SERVICE] verifyToken -> [2. LÉPÉS] Token nincs a memóriában, keresés az adatbázisban: userRepository.findByToken("${token}")...`);
   const user = await userRepository.findByToken(token);
   if (!user || user.deleted) {
+    console.log(`[SERVICE] verifyToken -> Az adatbázisban SEM található aktív felhasználó ezzel a tokennel: "${token}"`);
     return null;
   }
 
   // Megvizsgáljuk, hogy lejárt-e a token a helyi időzóna alapján
+  console.log(`[SERVICE] verifyToken -> Felhasználó megtalálva a DB-ben: ID=${user.id}, Email="${user.email}", Lejárat: ${user.tokenExpiresAt}`);
   const userExpiresDate = parseLocalDateTime(user.tokenExpiresAt);
+  console.log(`[SERVICE] verifyToken -> DB lejárati idő: ${user.tokenExpiresAt}, Aktuális idő: ${getLocalDateTime(now)}`);
   if (userExpiresDate && userExpiresDate <= now) {
+    console.log(`[SERVICE] verifyToken -> Az adatbázisban tárolt token LEJÁRT!`);
     return null; // A token lejárt
   }
 
+  console.log(`[SERVICE] verifyToken -> Az adatbázisban lévő token ÉRVÉNYES! Visszatöltés az in-memory memóriatárba.`);
   const session = {
     id: user.id,
     email: user.email,
@@ -168,16 +185,20 @@ export async function verifyToken(token) {
  */
 export async function createUser(userData) {
   const { firstName, lastName, email, birthYear, password, isAdmin, admin } = userData;
+  console.log(`[SERVICE] createUser -> Új felhasználó létrehozása indul: email="${email}", név="${firstName} ${lastName}", birthYear=${birthYear}`);
 
   if (!firstName || !lastName || !email || !birthYear) {
+    console.log(`[SERVICE] createUser -> HIBA: Hiányzó kötelező mezők!`);
     const error = new Error('A firstName, lastName, email és birthYear megadása kötelező.');
     error.statusCode = 400;
     throw error;
   }
 
   // Ellenőrizzük, hogy létezik-e már felhasználó ezzel az email címmel
+  console.log(`[SERVICE] createUser -> userRepository.findByEmail hívása email="${email}" címre...`);
   const existingUser = await userRepository.findByEmail(email);
   if (existingUser) {
+    console.log(`[SERVICE] createUser -> HIBA: Ezzel az email címmel már létezik felhasználó (ID=${existingUser.id})!`);
     const error = new Error('Ezzel az email címmel már létezik felhasználó.');
     error.statusCode = 409;
     throw error;
@@ -190,7 +211,8 @@ export async function createUser(userData) {
   // Admin jogosultság beállítása (ha nincs megadva, alapértelmezetten false)
   const userIsAdmin = isAdmin !== undefined ? Boolean(isAdmin) : (admin !== undefined ? Boolean(admin) : false);
 
-  return await userRepository.create({
+  console.log(`[SERVICE] createUser -> userRepository.create hívása...`);
+  const createdUser = await userRepository.create({
     firstName,
     lastName,
     email,
@@ -198,6 +220,9 @@ export async function createUser(userData) {
     password: hashedPassword,
     isAdmin: userIsAdmin,
   });
+
+  console.log(`[SERVICE] createUser -> SIKERES létrehozás! Új felhasználó ID=${createdUser.id}, Email="${createdUser.email}"`);
+  return createdUser;
 }
 
 /**
