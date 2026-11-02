@@ -3,9 +3,8 @@ import path from 'path';
 import { connectDB } from './db.js';
 import { checkEmptyTable as checkEmptyUsersTable } from './z_dummy_data/users_dummy.js';
 import { checkEmptyTable as checkEmptyTasksTable } from './z_dummy_data/tasks_dummy.js';
-import * as userController from './controller/userController.js';
-import * as taskController from './controller/taskController.js';
 import * as userService from './service/userService.js';
+import apiRouter from './router/routerindex.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -54,31 +53,8 @@ app.get('/', async (req, res) => {
   });
 });
 
-// --- API Útvonalak (A kérések kezelését a Controller réteg végzi) ---
-
-// Bejelentkezés végpont (nyilvános)
-app.post('/api/login', userController.login);
-
-// Felhasználók lekérdezése (User joggal elérhető)
-app.get('/api/users', userController.authenticateToken, userController.getUsers);
-
-// Új felhasználó létrehozása (User joggal elérhető)
-app.post('/api/users', userController.authenticateToken, userController.createUser);
-app.post('/api/createuser', userController.authenticateToken, userController.createUser);
-
-// Felhasználó logikai törlése (deleted flag = true) (User joggal elérhető)
-app.post('/api/deleteuser/:id', userController.authenticateToken, userController.deleteUser);
-app.post('/api/deleteuser', userController.authenticateToken, userController.deleteUser);
-app.delete('/api/deleteuser/:id', userController.authenticateToken, userController.deleteUser);
-app.delete('/api/deleteuser', userController.authenticateToken, userController.deleteUser);
-app.delete('/api/users/:id', userController.authenticateToken, userController.deleteUser);
-app.delete('/api/users', userController.authenticateToken, userController.deleteUser);
-
-// Feladatok lekérdezése (User joggal elérhető)
-app.get('/api/tasks', userController.authenticateToken, taskController.getTasks);
-
-// Feladatok és hozzájuk rendelt felhasználók lekérdezése (Admin joggal elérhető)
-app.get('/api/taskusers', userController.authenticateAdmin, taskController.getTaskUsers);
+// --- API Útvonalak (A kérések kezelését a Router és Controller réteg végzi) ---
+app.use('/api', apiRouter);
 
 // Szerver indítása és adatbázis kapcsolat
 app.listen(PORT, async () => {
