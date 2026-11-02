@@ -1,10 +1,12 @@
+@ADMINTOKEN = 0487fc01-62e4-480e-b596-567a76ce94d0
+@USERTOKEN = d7a0505c-7230-43f1-bd77-f9b2fc33c86b
+
 ### Gyökér végpont tesztelése belépés NÉLKÜL (udvarias elutasító üzenet, 401 Hiba)
 GET http://localhost:3000/
 
 ### Gyökér végpont tesztelése bejelentkezve (GET /)
-# Cseréld ki a tokent a bejelentkezéskor kapott tokenre!
 GET http://localhost:3000/
-Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+Authorization: Bearer {{ADMINTOKEN}}
 
 ### Favicon tesztelése (GET /favicon.ico) (Nyilvános)
 GET http://localhost:3000/favicon.ico
@@ -41,18 +43,18 @@ GET http://localhost:3000/api/users
 
 ### Összes felhasználó lekérdezése User joggal (GET /api/users)
 GET http://localhost:3000/api/users
-Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+Authorization: Bearer {{USERTOKEN}}
 
 ### Összes feladat lekérdezése token NÉLKÜL (várhatóan 401 Hiba)
 GET http://localhost:3000/api/tasks
 
 ### Összes feladat lekérdezése User joggal (GET /api/tasks)
 GET http://localhost:3000/api/tasks
-Authorization: 1218cd91-5dc6-4594-b574-d19511480612
+Authorization: Bearer {{USERTOKEN}}
 
 ### Új felhasználó létrehozása User joggal (POST /api/users vagy /api/createuser)
 POST http://localhost:3000/api/users
-Authorization: Bearer 0487fc01-62e4-480e-b596-567a76ce94d0
+Authorization: Bearer {{ADMINTOKEN}}
 Content-Type: application/json
 
 {
@@ -66,7 +68,7 @@ Content-Type: application/json
 
 ### Új admin felhasználó létrehozása User joggal (POST /api/users vagy /api/createuser)
 POST http://localhost:3000/api/users
-Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+Authorization: Bearer {{ADMINTOKEN}}
 Content-Type: application/json
 
 {
@@ -80,7 +82,7 @@ Content-Type: application/json
 
 ### Új felhasználó létrehozása - Hibás email validáció (várhatóan 400 Hiba)
 POST http://localhost:3000/api/users
-Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+Authorization: Bearer {{ADMINTOKEN}}
 Content-Type: application/json
 
 {
@@ -93,7 +95,7 @@ Content-Type: application/json
 
 ### Új felhasználó létrehozása - Hibás születési év validáció (várhatóan 400 Hiba)
 POST http://localhost:3000/api/users
-Authorization: Bearer 0487fc01-62e4-480e-b596-567a76ce94d0
+Authorization: Bearer {{ADMINTOKEN}}
 Content-Type: application/json
 
 {
@@ -106,11 +108,11 @@ Content-Type: application/json
 
 ### Felhasználó logikai törlése User joggal (POST /api/deleteuser/:id)
 POST http://localhost:3000/api/deleteuser/16
-Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+Authorization: Bearer {{ADMINTOKEN}}
 
 ### Felhasználó logikai törlése body-ban küldött ID-val User joggal (POST /api/deleteuser)
 POST http://localhost:3000/api/deleteuser
-Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+Authorization: Bearer {{ADMINTOKEN}}
 Content-Type: application/json
 
 {
@@ -119,7 +121,7 @@ Content-Type: application/json
 
 ### Felhasználó logikai törlése body-ban küldött ID-val User joggal (DELETE /api/deleteuser)
 DELETE http://localhost:3000/api/deleteuser
-Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+Authorization: Bearer {{ADMINTOKEN}}
 Content-Type: application/json
 
 {
@@ -131,11 +133,8 @@ GET http://localhost:3000/api/taskusers
 
 ### Kapcsolótábla lekérdezése sima (NEM ADMIN) felhasználói tokennel (várhatóan 403 Hiba)
 GET http://localhost:3000/api/taskusers
-Authorization: Bearer d7a0505c-7230-43f1-bd77-f9b2fc33c86b
+Authorization: Bearer {{USERTOKEN}}
 
 ### Kapcsolótábla lekérdezése ADMIN tokennel (GET /api/taskusers) (200 OK)
 GET http://localhost:3000/api/taskusers
-Authorization: Bearer 382b2baa-924e-4b5b-885e-5dd998c57af5
-
-
-
+Authorization: Bearer {{ADMINTOKEN}}
