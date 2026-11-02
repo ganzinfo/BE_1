@@ -9,6 +9,7 @@ import apiRouter from './router/routerindex.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+
 // Minimalista kérésnaplózó (logger) middleware státuszkóddal
 app.use((req, res, next) => {
   res.on('finish', () => {
