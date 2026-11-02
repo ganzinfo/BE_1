@@ -82,6 +82,24 @@ Content-Type: application/json
 POST http://localhost:3000/api/deleteuser/16
 Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
 
+### Felhasználó logikai törlése body-ban küldött ID-val User joggal (POST /api/deleteuser)
+POST http://localhost:3000/api/deleteuser
+Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+Content-Type: application/json
+
+{
+  "id": 16
+}
+
+### Felhasználó logikai törlése body-ban küldött ID-val User joggal (DELETE /api/deleteuser)
+DELETE http://localhost:3000/api/deleteuser
+Authorization: Bearer 167d9b38-66af-4f84-a4c4-8b3166a3a694
+Content-Type: application/json
+
+{
+  "id": 16
+}
+
 ### Kapcsolótábla lekérdezése token NÉLKÜL (várhatóan 401 Hiba)
 GET http://localhost:3000/api/taskusers
 

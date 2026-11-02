@@ -68,8 +68,11 @@ app.post('/api/createuser', userController.authenticateToken, userController.cre
 
 // Felhasználó logikai törlése (deleted flag = true) (User joggal elérhető)
 app.post('/api/deleteuser/:id', userController.authenticateToken, userController.deleteUser);
+app.post('/api/deleteuser', userController.authenticateToken, userController.deleteUser);
 app.delete('/api/deleteuser/:id', userController.authenticateToken, userController.deleteUser);
+app.delete('/api/deleteuser', userController.authenticateToken, userController.deleteUser);
 app.delete('/api/users/:id', userController.authenticateToken, userController.deleteUser);
+app.delete('/api/users', userController.authenticateToken, userController.deleteUser);
 
 // Feladatok lekérdezése (User joggal elérhető)
 app.get('/api/tasks', userController.authenticateToken, taskController.getTasks);
