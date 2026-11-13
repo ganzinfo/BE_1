@@ -301,10 +301,47 @@ export async function deleteUser(id) {
   };
 }
 
+/**
+ * Megadja a keresésnek megfelelő felhasználók számát és a 10-esével számított oldalak számát.
+ */
+export async function getUserPagesCount(search = '') {
+  const searchTerm = String(search || '').trim();
+  console.log(`[SERVICE] getUserPagesCount -> Oldalszám és darabszám lekérése: search="${searchTerm}"`);
+  const totalUsers = await userRepository.countBySearch(searchTerm);
+  const pageSize = 10;
+  const totalPages = Math.ceil(totalUsers / pageSize);
+
+  return {
+    search: searchTerm,
+    totalUsers,
+    pageSize,
+    totalPages,
+    count: totalUsers,
+    pages: totalPages,
+  };
+}
+
+/**
+ * Visszaadja a kért oldalon lévő felhasználókat kizárólag a teljes nevükkel (Kovács Bence formátumban).
+ */
+export async function getUsersByPage(search = '', page = 1, pageSize = 10) {
+  const searchTerm = String(search || '').trim();
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limit = Math.max(1, parseInt(pageSize, 10) || 10);
+
+  console.log(`[SERVICE] getUsersByPage -> Oldal lekérése: search="${searchTerm}", page=${pageNum}, pageSize=${limit}`);
+  const users = await userRepository.findBySearchAndPage(searchTerm, pageNum, limit);
+
+  // Kizárólag a teljes nevet adjuk vissza tömbként
+  return users.map((u) => `${u.lastName} ${u.firstName}`.trim());
+}
+
 export default {
   TOKEN_EXPIRATION_MINUTES,
   getAllUsers,
   getUserById,
+  getUserPagesCount,
+  getUsersByPage,
   login,
   verifyToken,
   createUser,

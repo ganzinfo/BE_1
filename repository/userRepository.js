@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+import { Op } from 'sequelize';
 import { User } from '../models/User.js';
 
 /**
@@ -99,6 +100,62 @@ export async function updateToken(id, token, tokenExpiresAt) {
   return user;
 }
 
+/**
+ * Segédfüggvény a keresési feltétel összeállításához.
+ * Keresés esetén a megadott szavak alapján szűr a lastName, firstName vagy email mezőkre.
+ */
+function buildSearchWhere(searchTerm = '') {
+  const term = String(searchTerm || '').trim();
+  const where = { deleted: false };
+
+  if (term) {
+    const words = term.split(/\s+/).filter(Boolean);
+    where[Op.and] = words.map((word) => ({
+      [Op.or]: [
+        { firstName: { [Op.like]: `%${word}%` } },
+        { lastName: { [Op.like]: `%${word}%` } },
+        { email: { [Op.like]: `%${word}%` } },
+      ],
+    }));
+  }
+
+  return where;
+}
+
+/**
+ * Felhasználók darabszámának lekérdezése keresési kifejezés alapján.
+ */
+export async function countBySearch(searchTerm = '') {
+  console.log(`[REPOSITORY] countBySearch -> Keresés darabszámának lekérése: search="${searchTerm}"`);
+  const where = buildSearchWhere(searchTerm);
+  const count = await User.count({ where });
+  console.log(`[REPOSITORY] countBySearch -> Találatok száma: ${count}`);
+  return count;
+}
+
+/**
+ * Lapozott felhasználók lekérdezése keresés alapján (10-esével).
+ */
+export async function findBySearchAndPage(searchTerm = '', page = 1, pageSize = 10) {
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limit = Math.max(1, parseInt(pageSize, 10) || 10);
+  const offset = (pageNum - 1) * limit;
+
+  console.log(`[REPOSITORY] findBySearchAndPage -> Lapozott lekérés: search="${searchTerm}", page=${pageNum}, limit=${limit}, offset=${offset}`);
+  const where = buildSearchWhere(searchTerm);
+
+  const users = await User.findAll({
+    where,
+    attributes: ['id', 'firstName', 'lastName'],
+    order: [['id', 'ASC']],
+    limit,
+    offset,
+  });
+
+  console.log(`[REPOSITORY] findBySearchAndPage -> Visszaadott felhasználók száma: ${users.length}`);
+  return users;
+}
+
 export default {
   findAll,
   findById,
@@ -108,4 +165,6 @@ export default {
   updateToken,
   create,
   softDelete,
+  countBySearch,
+  findBySearchAndPage,
 };

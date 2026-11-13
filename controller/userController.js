@@ -118,11 +118,49 @@ export async function deleteUser(req, res) {
   }
 }
 
+/**
+ * Felhasználók darabszáma és 10-es oldalszáma adott keresési feltételre.
+ */
+export async function getUserPagesCount(req, res) {
+  try {
+    const search = req.query.search || req.query.q || '';
+    console.log(`[CONTROLLER] getUserPagesCount -> Kérés érkezett: search="${search}"`);
+    const result = await userService.getUserPagesCount(search);
+    res.json(result);
+  } catch (error) {
+    const status = error.statusCode || 500;
+    const message = error.statusCode ? error.message : 'Nem sikerült lekérdezni az oldalak számát.';
+    console.log(`[CONTROLLER] getUserPagesCount -> Hiba történt: ${message} (Státusz: ${status})`);
+    res.status(status).json({ error: message });
+  }
+}
+
+/**
+ * Lapozott felhasználók lekérdezése adott keresési feltételre és oldalszámra (csak a teljes nevekkel).
+ */
+export async function getUsersByPage(req, res) {
+  try {
+    const search = req.query.search || req.query.q || '';
+    const page = req.query.page || req.params.page || 1;
+    const pageSize = req.query.pageSize || req.query.limit || 10;
+    console.log(`[CONTROLLER] getUsersByPage -> Kérés érkezett: search="${search}", page=${page}`);
+    const names = await userService.getUsersByPage(search, page, pageSize);
+    res.json(names);
+  } catch (error) {
+    const status = error.statusCode || 500;
+    const message = error.statusCode ? error.message : 'Nem sikerült lekérdezni a felhasználók oldalát.';
+    console.log(`[CONTROLLER] getUsersByPage -> Hiba történt: ${message} (Státusz: ${status})`);
+    res.status(status).json({ error: message });
+  }
+}
+
 export default {
   login,
   getUsers,
   createUser,
   deleteUser,
+  getUserPagesCount,
+  getUsersByPage,
   authenticateToken,
   authenticateAdmin,
 };

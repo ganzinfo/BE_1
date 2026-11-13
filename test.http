@@ -63,6 +63,26 @@ GET http://localhost:3000/api/users
 GET http://localhost:3000/api/users
 Authorization: Bearer {{USERTOKEN}}
 
+### Oldalak és felhasználók számának lekérdezése - Összes user (GET /api/users/pages)
+GET http://localhost:3000/api/users/pages
+Authorization: Bearer {{USERTOKEN}}
+
+### Oldalak és felhasználók számának lekérdezése - Kereséssel (GET /api/users/pages?search=Kovács)
+GET http://localhost:3000/api/users/pages?search=Kovács
+Authorization: Bearer {{USERTOKEN}}
+
+### 1. oldal lekérdezése - Csak a felhasználók teljes nevével (GET /api/users/search?page=1)
+GET http://localhost:3000/api/users/search?page=1
+Authorization: Bearer {{USERTOKEN}}
+
+### 2. oldal lekérdezése - Csak a felhasználók teljes nevével (GET /api/users/search?page=2)
+GET http://localhost:3000/api/users/search?page=2
+Authorization: Bearer {{USERTOKEN}}
+
+### Keresés és lapozás együtt - Csak a találatok teljes nevével (GET /api/users/search?search=Kovács&page=1)
+GET http://localhost:3000/api/users/search?search=Kovács&page=1
+Authorization: Bearer {{USERTOKEN}}
+
 ### Összes feladat lekérdezése token NÉLKÜL (várhatóan 401 Hiba)
 GET http://localhost:3000/api/tasks
 
