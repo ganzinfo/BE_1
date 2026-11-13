@@ -11,16 +11,25 @@ Authorization: Bearer {{ADMINTOKEN}}
 ### Favicon tesztelése (GET /favicon.ico) (Nyilvános)
 GET http://localhost:3000/favicon.ico
 
-### Sikeres bejelentkezés - Admin felhasználó (Kovács Bence) (POST /api/login)
+### Sikeres bejelentkezés - Admin felhasználó felhasználónévvel (admin1) (POST /api/login)
 POST http://localhost:3000/api/login
 Content-Type: application/json
 
 {
-  "email": "bence.kovacs@example.com",
+  "username": "admin1",
   "password": "password123"
 }
 
-### Sikeres bejelentkezés - Sima (nem admin) felhasználó (Tóth Dániel) (POST /api/login)
+### Sikeres bejelentkezés - Admin felhasználó email kulcsban küldött felhasználónévvel (admin1) (POST /api/login)
+POST http://localhost:3000/api/login
+Content-Type: application/json
+
+{
+  "email": "admin1",
+  "password": "password123"
+}
+
+### Sikeres bejelentkezés - Sima (nem admin) felhasználó email címmel (Tóth Dániel) (POST /api/login)
 POST http://localhost:3000/api/login
 Content-Type: application/json
 
@@ -29,12 +38,21 @@ Content-Type: application/json
   "password": "password123"
 }
 
-### Sikertelen bejelentkezés hibás jelszóval (várhatóan 401 Hiba)
+### Sikertelen bejelentkezés - Admin hibás jelszóval (várhatóan 401 Hiba)
 POST http://localhost:3000/api/login
 Content-Type: application/json
 
 {
-  "email": "bence.kovacs@example.com",
+  "username": "admin1",
+  "password": "rosszjelszo"
+}
+
+### Sikertelen bejelentkezés - Sima felhasználó hibás jelszóval (várhatóan 401 Hiba)
+POST http://localhost:3000/api/login
+Content-Type: application/json
+
+{
+  "email": "daniel.toth@example.com",
   "password": "rosszjelszo"
 }
 

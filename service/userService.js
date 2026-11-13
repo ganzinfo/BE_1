@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
+import validator from 'validator';
 import * as userRepository from '../repository/userRepository.js';
+import * as adminRepository from '../repository/adminRepository.js';
 
 // Alapértelmezett token érvényességi idő percben megadva (pl. 15 perc)
 export const TOKEN_EXPIRATION_MINUTES = Number(process.env.TOKEN_EXPIRATION_MINUTES) || 20;
@@ -64,30 +66,53 @@ export async function getUserById(id) {
 
 /**
  * Bejelentkezés és token kiállítás.
- * Validálja a megadott adatokat, ellenőrzi a felhasználó hitelesítő adatait és bcrypt jelszavát.
+ * Validálja a megadott adatokat, ellenőrzi, hogy az azonosító email vagy nem email (felhasználónév).
+ * - Ha email: a Users táblában keresi a felhasználót és ellenőrzi a jelszó hash-t.
+ * - Ha nem email: az Admins táblában keresi az admint (username alapján) és ellenőrzi a jelszó hash-t.
  * Sikeres azonosítás esetén tokent generál a megadott érvényességi idővel (percben),
- * és az utolsó tokent a lejárati idejével együtt elmenti a User táblába.
+ * és az utolsó tokent a lejárati idejével együtt elmenti az adott rekordba.
  */
-export async function login(email, password, expirationMinutes = TOKEN_EXPIRATION_MINUTES) {
-  console.log(`[SERVICE] login -> Bejelentkezési folyamat indítása: email="${email}"`);
-  if (!email || !password) {
-    const error = new Error('Az email és jelszó megadása kötelező.');
+export async function login(identifier, password, expirationMinutes = TOKEN_EXPIRATION_MINUTES) {
+  console.log(`[SERVICE] login -> Bejelentkezési folyamat indítása: azonosító="${identifier}"`);
+  if (!identifier || !password) {
+    const error = new Error('Az azonosító (email vagy felhasználónév) és jelszó megadása kötelező.');
     error.statusCode = 400;
     throw error;
   }
 
-  console.log(`[SERVICE] login -> userRepository.findByCredentials hívása email="${email}" címre...`);
-  const user = await userRepository.findByCredentials(email, password);
-  if (!user) {
-    console.log(`[SERVICE] login -> Sikertelen hitelesítés: hibás email vagy jelszó`);
-    const error = new Error('Hibás email cím vagy jelszó.');
-    error.statusCode = 401;
-    throw error;
+  const trimmedIdentifier = String(identifier).trim();
+  const isEmail = validator.isEmail(trimmedIdentifier);
+  console.log(`[SERVICE] login -> Azonosító típusának ellenőrzése: "${trimmedIdentifier}" -> ${isEmail ? 'EMAIL cím (keresés a Users táblában)' : 'NEM email / felhasználónév (keresés az Admins táblában)'}`);
+
+  let account = null;
+  let isAdmin = false;
+
+  if (isEmail) {
+    console.log(`[SERVICE] login -> userRepository.findByCredentials hívása email="${trimmedIdentifier}" címre...`);
+    account = await userRepository.findByCredentials(trimmedIdentifier, password);
+    // A feladat szerint a users táblában marad az admin flag, de nem használjuk
+    isAdmin = false;
+    if (!account) {
+      console.log(`[SERVICE] login -> Sikertelen hitelesítés a Users táblában: hibás email vagy jelszó`);
+      const error = new Error('Hibás email cím vagy jelszó.');
+      error.statusCode = 401;
+      throw error;
+    }
+  } else {
+    console.log(`[SERVICE] login -> adminRepository.findByCredentials hívása username="${trimmedIdentifier}" névre...`);
+    account = await adminRepository.findByCredentials(trimmedIdentifier, password);
+    isAdmin = true;
+    if (!account) {
+      console.log(`[SERVICE] login -> Sikertelen hitelesítés az Admins táblában: hibás felhasználónév vagy jelszó`);
+      const error = new Error('Hibás felhasználónév vagy jelszó.');
+      error.statusCode = 401;
+      throw error;
+    }
   }
 
-  // Ha a felhasználó jelszava korábbról még nem bcrypt formátumú volt, frissítjük
-  if (user.password && !user.password.startsWith('$2')) {
-    user.password = await bcrypt.hash(password, 10);
+  // Ha a felhasználó vagy admin jelszava korábbról még nem bcrypt formátumú volt, frissítjük
+  if (account.password && !account.password.startsWith('$2')) {
+    account.password = await bcrypt.hash(password, 10);
   }
 
   // Érvényességi idő percben és lejárati dátum kiszámítása a helyi időzónában (téli/nyári időszámítással)
@@ -96,17 +121,19 @@ export async function login(email, password, expirationMinutes = TOKEN_EXPIRATIO
   const expiresDate = new Date(Date.now() + validityMinutes * 60 * 1000);
   const tokenExpiresAt = getLocalDateTime(expiresDate);
 
-  // Az utolsó token és a lejárati idő tárolása a User táblában a helyi időzóna szerint
-  user.token = token;
-  user.tokenExpiresAt = tokenExpiresAt;
-  await user.save();
-  console.log(`[SERVICE] login -> Új token elmentve a User táblába: "${token}", lejár: ${tokenExpiresAt} (${validityMinutes} perc)`);
+  // Az utolsó token és a lejárati idő tárolása az adatbázisban a helyi időzóna szerint
+  account.token = token;
+  account.tokenExpiresAt = tokenExpiresAt;
+  await account.save();
+  console.log(`[SERVICE] login -> Új token elmentve az adatbázisba (${isAdmin ? 'Admin' : 'User'}): "${token}", lejár: ${tokenExpiresAt} (${validityMinutes} perc)`);
 
   // In-memory gyorsítótár frissítése
   activeTokens.set(token, {
-    id: user.id,
-    email: user.email,
-    isAdmin: user.isAdmin,
+    id: account.id,
+    username: account.username || null,
+    email: account.email,
+    isAdmin,
+    role: isAdmin ? 'admin' : 'user',
     tokenExpiresAt,
   });
   console.log(`[SERVICE] login -> In-memory gyorsítótár (activeTokens) frissítve`);
@@ -114,7 +141,10 @@ export async function login(email, password, expirationMinutes = TOKEN_EXPIRATIO
   return {
     message: 'Sikeres bejelentkezés!',
     token,
-    isAdmin: user.isAdmin,
+    isAdmin,
+    role: isAdmin ? 'admin' : 'user',
+    username: account.username || undefined,
+    email: account.email,
     expiresInMinutes: validityMinutes,
     tokenExpiresAt,
   };
@@ -124,7 +154,7 @@ export async function login(email, password, expirationMinutes = TOKEN_EXPIRATIO
  * Token érvényességének ellenőrzése.
  * Ellenőrzi a tokent az adatbázisban (és a gyorsítótárban), valamint megvizsgálja a helyi időzóna
  * (téli / nyári időszámítás) szerint, hogy nem járt-e le az érvényességi ideje.
- * Visszaadja a felhasználó adatait, vagy null-t, ha a token érvénytelen vagy lejárt.
+ * Visszaadja a felhasználó/admin adatait, vagy null-t, ha a token érvénytelen vagy lejárt.
  */
 export async function verifyToken(token) {
   console.log(`[SERVICE] verifyToken -> Token vizsgálatának kezdete: "${token || '(üres)'}"`);
@@ -146,22 +176,34 @@ export async function verifyToken(token) {
       activeTokens.delete(token);
       return null; // A token lejárt
     }
-    console.log(`[SERVICE] verifyToken -> Memóriában lévő token ÉRVÉNYES! Felhasználó: ID=${session.id}, Email="${session.email}"`);
+    console.log(`[SERVICE] verifyToken -> Memóriában lévő token ÉRVÉNYES! Azonosító: ID=${session.id}, Email="${session.email}", isAdmin=${session.isAdmin}`);
     return session;
   }
 
-  // 2. Ha memóriában nem található (pl. szerver újraindult), ellenőrizzük az adatbázisban az utolsó elmentett tokent
-  console.log(`[SERVICE] verifyToken -> [2. LÉPÉS] Token nincs a memóriában, keresés az adatbázisban: userRepository.findByToken("${token}")...`);
-  const user = await userRepository.findByToken(token);
-  if (!user || user.deleted) {
-    console.log(`[SERVICE] verifyToken -> Az adatbázisban SEM található aktív felhasználó ezzel a tokennel: "${token}"`);
+  // 2. Ha memóriában nem található (pl. szerver újraindult), ellenőrizzük az adatbázisban
+  console.log(`[SERVICE] verifyToken -> [2. LÉPÉS] Token nincs a memóriában, keresés az adatbázisban...`);
+  let account = await userRepository.findByToken(token);
+  let isAdmin = false;
+
+  if (account && !account.deleted) {
+    isAdmin = false;
+  } else {
+    // Keresés az Admins táblában
+    account = await adminRepository.findByToken(token);
+    if (account && !account.deleted) {
+      isAdmin = true;
+    }
+  }
+
+  if (!account || account.deleted) {
+    console.log(`[SERVICE] verifyToken -> Az adatbázisban SEM található aktív felhasználó vagy admin ezzel a tokennel: "${token}"`);
     return null;
   }
 
   // Megvizsgáljuk, hogy lejárt-e a token a helyi időzóna alapján
-  console.log(`[SERVICE] verifyToken -> Felhasználó megtalálva a DB-ben: ID=${user.id}, Email="${user.email}", Lejárat: ${user.tokenExpiresAt}`);
-  const userExpiresDate = parseLocalDateTime(user.tokenExpiresAt);
-  console.log(`[SERVICE] verifyToken -> DB lejárati idő: ${user.tokenExpiresAt}, Aktuális idő: ${getLocalDateTime(now)}`);
+  console.log(`[SERVICE] verifyToken -> Rekord megtalálva a DB-ben: ID=${account.id}, Email="${account.email}", isAdmin=${isAdmin}, Lejárat: ${account.tokenExpiresAt}`);
+  const userExpiresDate = parseLocalDateTime(account.tokenExpiresAt);
+  console.log(`[SERVICE] verifyToken -> DB lejárati idő: ${account.tokenExpiresAt}, Aktuális idő: ${getLocalDateTime(now)}`);
   if (userExpiresDate && userExpiresDate <= now) {
     console.log(`[SERVICE] verifyToken -> Az adatbázisban tárolt token LEJÁRT!`);
     return null; // A token lejárt
@@ -169,10 +211,12 @@ export async function verifyToken(token) {
 
   console.log(`[SERVICE] verifyToken -> Az adatbázisban lévő token ÉRVÉNYES! Visszatöltés az in-memory memóriatárba.`);
   const session = {
-    id: user.id,
-    email: user.email,
-    isAdmin: user.isAdmin,
-    tokenExpiresAt: user.tokenExpiresAt,
+    id: account.id,
+    username: account.username || null,
+    email: account.email,
+    isAdmin,
+    role: isAdmin ? 'admin' : 'user',
+    tokenExpiresAt: account.tokenExpiresAt,
   };
   activeTokens.set(token, session);
 

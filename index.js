@@ -3,6 +3,7 @@ import path from 'path';
 import { connectDB } from './db.js';
 import { checkEmptyTable as checkEmptyUsersTable } from './z_dummy_data/users_dummy.js';
 import { checkEmptyTable as checkEmptyTasksTable } from './z_dummy_data/tasks_dummy.js';
+import { checkEmptyTable as checkEmptyAdminsTable } from './z_dummy_data/admins_dummy.js';
 import * as userService from './service/userService.js';
 import apiRouter from './router/routerindex.js';
 
@@ -60,6 +61,7 @@ app.use('/api', apiRouter);
 // Szerver indítása és adatbázis kapcsolat
 app.listen(PORT, async () => {
   await connectDB();
+  await checkEmptyAdminsTable();
   await checkEmptyUsersTable();
   await checkEmptyTasksTable();
   console.log(`Szerver elindult a http://localhost:${PORT} címen`);

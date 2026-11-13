@@ -7,9 +7,10 @@ import * as userService from '../service/userService.js';
  */
 export async function login(req, res) {
   try {
-    const { email, password, expirationMinutes } = req.body;
-    console.log(`[CONTROLLER] login -> Bejelentkezési kísérlet érkezett (email: "${email}")`);
-    const result = await userService.login(email, password, expirationMinutes);
+    const { email, username, login, identifier, password, expirationMinutes } = req.body;
+    const loginIdentifier = username || email || login || identifier;
+    console.log(`[CONTROLLER] login -> Bejelentkezési kísérlet érkezett (azonosító: "${loginIdentifier}")`);
+    const result = await userService.login(loginIdentifier, password, expirationMinutes);
     console.log(`[CONTROLLER] login -> Sikeres bejelentkezés! Token kiállítva: "${result.token}" (isAdmin: ${result.isAdmin})`);
     res.json(result);
   } catch (error) {
